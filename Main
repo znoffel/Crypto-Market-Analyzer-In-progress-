@@ -1,0 +1,240 @@
+import time
+import json
+from urllib.request import urlopen
+import pandas as pd
+import numpy as np
+import stats
+import datetime
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
+import itertools
+from threading import Thread
+
+def price():
+
+    pricesURL = urlopen('https://api.binance.com/api/v1/klines?symbol=QKCBTC&interval=1m&limit=1').read()
+    Pricejson = json.loads(pricesURL)
+    lastPriceQKC = Pricejson[0][4]
+    print('QKC' + ' - ' + lastPriceQKC)
+
+
+datestamp = str(datetime.datetime.now().strftime("%H:%M:%S.%f")[:-3])
+date = str(datetime.datetime.now().strftime("%D/%m/%Y")[:-8])
+
+# symbolQKC = lastPriceQKC['symbol']
+# priceQKC = lastPriceQKC['lastPrice']
+# print(symbolQKC + ' - ' + priceQKC)
+
+
+def repeatPrice():
+    global PrevCloseQKCCurrent
+    global PrevCloseQKC1
+    global PrevCloseQKC2
+    global PrevCloseQKC3
+    global PrevCloseQKC4
+    global PrevCloseQKC5
+    global PrevCloseQKC6
+    global PrevCloseQKC7
+    global PrevCloseQKC8
+    global PrevCloseQKC9
+    global PrevCloseQKC10
+    global PrevCloseQKC11
+    global PrevCloseQKC12
+    global PrevCloseQKC13
+    global PrevCloseQKC14
+
+    PrevCloseURL = urlopen('https://api.binance.com/api/v1/klines?symbol=LTCBTC&interval=1m&limit=15').read()
+    RSIjson = json.loads(PrevCloseURL)
+    PrevCloseQKC1 = float(RSIjson[0][4])
+    PrevCloseQKC2 = float(RSIjson[1][4])
+    PrevCloseQKC3 = float(RSIjson[2][4])
+    PrevCloseQKC4 = float(RSIjson[3][4])
+    PrevCloseQKC5 = float(RSIjson[4][4])
+    PrevCloseQKC6 = float(RSIjson[5][4])
+    PrevCloseQKC7 = float(RSIjson[6][4])
+    PrevCloseQKC8 = float(RSIjson[7][4])
+    PrevCloseQKC9 = float(RSIjson[8][4])
+    PrevCloseQKC10 = float(RSIjson[9][4])
+    PrevCloseQKC11 = float(RSIjson[10][4])
+    PrevCloseQKC12 = float(RSIjson[11][4])
+    PrevCloseQKC13 = float(RSIjson[12][4])
+    PrevCloseQKC14 = float(RSIjson[13][4])
+    PrevCloseQKCCurrent = float(RSIjson[14][4])
+    # PrevCloseQKC15 = float(RSIjson[14][4])
+    # PrevCloseQKC16 = float(RSIjson[15][4])
+    # PrevCloseQKC17 = float(RSIjson[16][4])
+    # PrevCloseQKC18 = float(RSIjson[17][4])
+    # PrevCloseQKC19 = float(RSIjson[18][4])
+    # PrevCloseQKCCurrent = float(RSIjson[19][4])
+    global P4
+
+    P4 = [PrevCloseQKC3, PrevCloseQKC4, PrevCloseQKC5, PrevCloseQKC6, PrevCloseQKC7, PrevCloseQKC8]
+
+    global rsiArray
+    rsiArray = [
+        PrevCloseQKC1, PrevCloseQKC2, PrevCloseQKC3, PrevCloseQKC4, PrevCloseQKC5, PrevCloseQKC6, PrevCloseQKC7,
+        PrevCloseQKC8, PrevCloseQKC9, PrevCloseQKC10, PrevCloseQKC11, PrevCloseQKC12, PrevCloseQKC13, PrevCloseQKC14,
+        PrevCloseQKCCurrent
+           ]
+
+
+def B():
+    global b
+    b = 0
+    global P4
+    global P5
+    P5 = [PrevCloseQKC2, PrevCloseQKC3, PrevCloseQKC4, PrevCloseQKC5, PrevCloseQKC6, PrevCloseQKC7]
+    for x in itertools.repeat(1):
+        if P5 == P4:
+            b = 1
+            print('SAME')
+            time.sleep(1)
+            break
+        else:
+            pass
+
+
+def repeatB2():
+    global b
+    if b == 1:
+        B()
+
+
+def Calc():
+    global rsiArray
+    global b
+    df = pd.DataFrame({'Close': rsiArray})
+    window_length = 14
+    delta = df['Close'].diff()
+    delta = delta[1:]
+    up, down = delta.copy(), delta.copy()
+    up[up < 0] = 0
+    down[down > 0] = 0
+    down = down * (-1) + 0
+    # print(up)
+    # print(down)
+
+
+    upRMAvar1 = 0.00000225
+    downRMAvar1 = 0.00000322
+
+    UpRMAarray = [upRMAvar1]
+
+    DownRMAarray = [downRMAvar1]
+
+    RSarray = []
+
+    global RSIarray
+
+    RSIarray = []
+
+    def RSIcalc():
+        global b
+        i = 1
+        i2 = 1
+        i3 = 0
+        i4 = 0
+        for values in up[1:]:
+            Appendval = (values + (window_length - 1) * UpRMAarray[i - 1]) / window_length
+            UpRMAarray.append(Appendval)
+            if i == 13:
+                i = 13
+                # print('Up RMA: {}'.format(UpRMAarray))
+            else:
+                i = i + 1
+
+        for values2 in down[1:]:
+            Appendval2 = (values2 + (window_length - 1) * DownRMAarray[i2 - 1]) / window_length
+            DownRMAarray.append(Appendval2)
+            if i2 == 13:
+                i2 = 13
+                # print('Down RMA: {}'.format(DownRMAarray))
+            else:
+                i2 = i2 + 1
+
+        for values3 in UpRMAarray:
+            RS = UpRMAarray[i3] / DownRMAarray[i3]
+            RSarray.append(RS)
+            if i3 == 13:
+                i3 = 13
+                # print('RS: {}'.format(RSarray))
+            else:
+                i3 = i3 + 1
+
+        for values4 in RSarray:
+                RSI = 100.0 - (100.0 / (1.0 + RSarray[i4]))
+                if len(RSarray) < 13:
+                    RSIarray.append(round(RSI, 5))
+                if i4 == 13:
+                    i4 = 13
+                    print('RSI: {}'.format(RSIarray))
+                    time.sleep(1)
+                else:
+                    i4 = i4 + 1
+
+        if b == 1:
+            UpRMAarray.remove(UpRMAarray[0])
+            DownRMAarray.remove(DownRMAarray[0])
+
+    for x in itertools.repeat(1):
+        RSIcalc()
+
+
+def repeatPrint():
+    global PrevCloseQKCCurrent
+    signal = RSIarray[-1]
+
+    scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
+
+    credentials = ServiceAccountCredentials.from_json_keyfile_name('SpreadsheetData-eda7a0e7b5f3.json', scope)
+
+    gc = gspread.authorize(credentials)
+
+    wks = gc.open('Thing').sheet1
+
+
+    if signal < 36:
+        wks.append_row([signal, PrevCloseQKCCurrent, date, datestamp])
+
+        for x in itertools.repeat(1):
+            if signal < 36:
+                a = 1
+                print(a)
+                time.sleep(1)
+            else:
+                a = 2
+                print(a)
+                wks.append_row([signal, PrevCloseQKCCurrent, date, datestamp])
+                break
+    time.sleep(1)
+
+def repeatPrice2():
+    for x in itertools.repeat(1):
+        repeatPrice()
+
+# def repeatCalc2():
+#    for x in itertools.repeat(1):
+#        Calc()
+
+def repeatPrint2():
+    for x in itertools.repeat(1):
+        repeatPrint()
+
+def repeatB3():
+    for x in itertools.repeat(1):
+        repeatB2()
+
+if __name__ == '__main__':
+    Thread(target=repeatPrice2).start()
+    time.sleep(5)
+    Thread(target=B).start()
+    time.sleep(5)
+    Thread(target=repeatB3).start()
+    time.sleep(5)
+    Thread(target=Calc).start()
+    time.sleep(5)
+    Thread(target=repeatPrint2).start()
+
+
+
+
